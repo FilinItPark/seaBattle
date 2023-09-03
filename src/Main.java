@@ -6,6 +6,12 @@ import java.util.Scanner;
  * @version 27.08.2023
  */
 public class Main {
+    static Random random = new Random();
+    static int fieldSize = 0;
+    static int countUserShips = 0;
+    static int countCompShips = 0;
+    static Player activePlayer;
+
 
     public enum Cell {
         ALIVE_SHIP('Ж'),
@@ -40,6 +46,86 @@ public class Main {
         }
     }
 
+    static void cleanConsole() {
+        for (int i = 0; i < 100; i++) {
+            System.out.println();
+        }
+    }
+    static void initEmptyField(Cell[][] userField, Cell[][] computerField) {
+        for (int i = 0; i < fieldSize; i++) {
+            for (int j = 0; j < fieldSize; j++) {
+                userField[i][j] = Cell.EMPTY;
+                computerField[i][j] = Cell.EMPTY;
+            }
+        }
+    }
+
+    static void printField(Cell[][] field) {
+        for (int i = 0; i < fieldSize; i++) {
+            for (int j = 0; j < fieldSize; j++) {
+                if (field[i][j] == Cell.ALIVE_SHIP) {
+                    System.out.print(Cell.ALIVE_SHIP.getValue());
+                } else {
+                    System.out.print(Cell.EMPTY.getValue());
+                }
+            }
+            System.out.println();
+        }
+    }
+
+
+    static int getFieldSize() {
+        Scanner scanner = new Scanner(System.in);
+
+        boolean isInputCorrect;
+        System.out.println("Введите размер поля");
+        do {
+            isInputCorrect = true;
+
+            try {
+                fieldSize = scanner.nextInt();
+
+                if (fieldSize < 10) {
+                    throw new Exception();
+                }
+            } catch (Exception exception) {
+                isInputCorrect = false;
+                System.out.println("Ошибка.Минимальный размер поля 10 на 10");
+            }
+        } while (isInputCorrect == false);
+        return fieldSize;
+    }
+
+    static void setUpBattleShipsOnTheMap(int countShips, Cell[][] field) {
+        for (int k = 0; k < countShips; k++) {
+            int iShip, jShip;
+
+            do {
+                iShip = random.nextInt(fieldSize);
+                jShip = random.nextInt(fieldSize);
+            } while (field[iShip][jShip] != Cell.EMPTY);
+
+            field[iShip][jShip] = Cell.ALIVE_SHIP;
+        }
+    }
+
+    static void shoot(Cell[][] field, Player newPlayer) {
+        int iShoot = random.nextInt(fieldSize);
+        int jShoot = random.nextInt(fieldSize);
+
+        if (field[iShoot][jShoot] != Cell.ALIVE_SHIP) {
+            field[iShoot][jShoot] = Cell.MISS_SHOOT;
+            activePlayer = newPlayer;
+        } else if (field[iShoot][jShoot] == Cell.ALIVE_SHIP) {
+            field[iShoot][jShoot] = Cell.DEAD_SHIP;
+            if (newPlayer == Player.USER)
+                countUserShips--;
+            else if (newPlayer == Player.COMPUTER)
+                countCompShips--;
+//            System.out.println(newPlayer.value + " потерял корабль. Осталось живых: " + countUserShips);
+        }
+    }
+
     public static void main(String[] args) {
         /*
         1) инициализация переменных (рандом,игрок,размер поля, сколько кораблей у компа и у игрока,кто победил по итогу)
@@ -64,77 +150,22 @@ public class Main {
         4 однопалубных
          */
 
-        //region инициализация переменных
-        Random random = new Random();
-
         Cell[][] computerField, userField;
-        Player activePlayer, winner = Player.INITIAL;
-
-        int fieldSize = 0;
-        int countUserShips, countCompShips;
-
-        Scanner scanner = new Scanner(System.in);
+        Player winner = Player.INITIAL;
 
         boolean isPlay = true;
 
-        boolean isInputCorrect;
-        //endregion
-
-        //region ввод размер поля,заполнение пустой клеткой
-        System.out.println("Введите размер поля");
-        do {
-            isInputCorrect = true;
-
-            try {
-                fieldSize = scanner.nextInt();
-
-                if (fieldSize < 10) {
-                    throw new Exception();
-                }
-            } catch (Exception exception) {
-                isInputCorrect = false;
-                System.out.println("Ошибка.Минимальный размер поля 10 на 10");
-            }
-        } while (isInputCorrect == false);
+        fieldSize = getFieldSize();
 
         userField = new Cell[fieldSize][fieldSize];
         computerField = new Cell[fieldSize][fieldSize];
 
         countUserShips = countCompShips = 10;
 
-        for (int i = 0; i < fieldSize; i++) {
-            for (int j = 0; j < fieldSize; j++) {
-                userField[i][j] = Cell.EMPTY;
-                computerField[i][j] = Cell.EMPTY;
-            }
-        }
-        //endregion
+        initEmptyField(userField, computerField);
 
-        //region расстановка кораблей на поле
-
-        for (int k = 0; k < countUserShips; k++) {
-            int iShip, jShip;
-
-            do {
-                iShip = random.nextInt(fieldSize);
-                jShip = random.nextInt(fieldSize);
-            } while (userField[iShip][jShip] != Cell.EMPTY);
-
-            userField[iShip][jShip] = Cell.ALIVE_SHIP;
-        }
-
-        for (int k = 0; k < countCompShips; k++) {
-            int iShip, jShip;
-
-            do {
-                iShip = random.nextInt(fieldSize);
-                jShip = random.nextInt(fieldSize);
-            } while (computerField[iShip][jShip] != Cell.EMPTY);
-
-            computerField[iShip][jShip] = Cell.ALIVE_SHIP;
-        }
-
-        //endregion
+        setUpBattleShipsOnTheMap(countUserShips, userField);
+        setUpBattleShipsOnTheMap(countCompShips, computerField);
 
         if (random.nextInt(1000) > 500) {
             activePlayer = Player.USER;
@@ -142,68 +173,19 @@ public class Main {
             activePlayer = Player.COMPUTER;
         }
 
-        //region стреляем
+
         while (isPlay) {
-            for (int i = 0; i < 100; i++) {
-                System.out.println();
-            }
+            cleanConsole();
 
-            //поле компьютера
-            for (int i = 0; i < fieldSize; i++) {
-                for (int j = 0; j < fieldSize; j++) {
-                    if (computerField[i][j] == Cell.ALIVE_SHIP) {
-                        System.out.print(Cell.ALIVE_SHIP.getValue());
-                    } else {
-                        System.out.print(Cell.EMPTY.getValue());
-                    }
-                }
-                System.out.println();
-            }
+            printField(computerField);
             System.out.println();
-
-            //поле игрока
-            for (int i = 0; i < fieldSize; i++) {
-                for (int j = 0; j < fieldSize; j++) {
-                    if (userField[i][j] == Cell.ALIVE_SHIP) {
-                        System.out.print(Cell.ALIVE_SHIP.getValue());
-                    } else {
-                        System.out.print(Cell.EMPTY.getValue());
-                    }
-                }
-                System.out.println();
-
-            }
+            printField(userField);
 
             System.out.println(activePlayer);
             if (activePlayer == Player.COMPUTER) {
-                System.out.println("Компьютер стреляет");
-
-                int iShoot = random.nextInt(fieldSize);
-                int jShoot = random.nextInt(fieldSize);
-
-                if (userField[iShoot][jShoot] != Cell.ALIVE_SHIP) {
-                    userField[iShoot][jShoot] = Cell.MISS_SHOOT;
-                    activePlayer = Player.USER;
-                } else if (userField[iShoot][jShoot] == Cell.ALIVE_SHIP) {
-                    userField[iShoot][jShoot] = Cell.DEAD_SHIP;
-                    countUserShips--;
-                    System.out.println("Человек потерял корабль. Осталось живых: " + countUserShips);
-                }
+                shoot(userField, Player.USER);
             } else if (activePlayer == Player.USER) {
-                System.out.println("Игрок стреляет");
-
-                int iShoot = random.nextInt(fieldSize);
-                int jShoot = random.nextInt(fieldSize);
-
-                if (computerField[iShoot][jShoot] != Cell.ALIVE_SHIP) {
-                    computerField[iShoot][jShoot] = Cell.MISS_SHOOT;
-                    activePlayer = Player.COMPUTER;
-                } else if (computerField[iShoot][jShoot] == Cell.ALIVE_SHIP) {
-                    computerField[iShoot][jShoot] = Cell.DEAD_SHIP;
-                    countCompShips--;
-                    System.out.println("Компьютер потерял корабль. Осталось живых: " + countCompShips);
-
-                }
+                shoot(computerField, Player.COMPUTER);
             }
 
             if (countUserShips == 0) {
@@ -218,4 +200,6 @@ public class Main {
 
         System.out.println(String.format("Победил %s", winner.getValue()));
     }
+
+
 }
